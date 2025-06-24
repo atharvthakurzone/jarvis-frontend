@@ -38,7 +38,7 @@ const App = () => {
     const combinedQuery = `${memoryContext}\n${msg}`.trim();
 
     try {
-      const response = await fetch(https://jarvis-backend-rbev.onrender.com/api/jarvis", {
+      const response = await fetch("https://jarvis-backend-rbev.onrender.com/api/jarvis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
