@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const models = [
   { id: "jarvis-custom", name: "Jarvis (Personal AI)" },
@@ -17,10 +17,15 @@ const App = () => {
   const [controller, setController] = useState(null);
   const [speakMode, setSpeakMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem("jarvisMemory", JSON.stringify(jarvisMemory));
   }, [jarvisMemory]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatHistory, isLoading]);
 
   const getModelNameById = (id) => {
     const model = models.find(m => m.id === id);
@@ -87,7 +92,6 @@ const App = () => {
         });
       }
 
-      // Save to Jarvis memory
       if (selectedModel === "jarvis-custom") {
         setJarvisMemory(prev => {
           const updated = [...prev, { q: msg, a: replyContent }];
@@ -145,7 +149,19 @@ const App = () => {
       </div>
 
       <div className="flex-1 flex flex-col">
-        <div className="flex p-4 bg-gray-700 items-center">
+        {/* Chat Area */}
+        <div className="flex-1 p-4 overflow-y-auto">
+          {chatHistory.map((msg, idx) => (
+            <div key={idx} className={`mb-2 ${msg.role === "user" ? "text-blue-400" : "text-green-400"}`}>
+              <strong>{msg.role === "user" ? "You" : msg.model}:</strong> {msg.content}
+            </div>
+          ))}
+          {isLoading && <div className="text-gray-400 italic">Jarvis is thinking...</div>}
+          <div ref={messagesEndRef}></div>
+        </div>
+
+        {/* Typing Panel (moved to bottom) */}
+        <div className="flex p-4 bg-gray-700 items-center border-t border-gray-600">
           <select
             className="bg-gray-900 text-white p-2 rounded mr-2"
             value={selectedModel}
@@ -171,15 +187,6 @@ const App = () => {
           <button className="bg-red-500 px-4 py-2 rounded ml-2" onClick={handleStop}>
             Stop
           </button>
-        </div>
-
-        <div className="flex-1 p-4 overflow-y-auto">
-          {chatHistory.map((msg, idx) => (
-            <div key={idx} className={`mb-2 ${msg.role === "user" ? "text-blue-400" : "text-green-400"}`}>
-              <strong>{msg.role === "user" ? "You" : msg.model}:</strong> {msg.content}
-            </div>
-          ))}
-          {isLoading && <div className="text-gray-400 italic">Jarvis is thinking...</div>}
         </div>
       </div>
     </div>
