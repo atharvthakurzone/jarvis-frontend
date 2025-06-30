@@ -65,8 +65,10 @@ const App = () => {
 
     setChatHistory(prev => [...prev, replyMsg]);
 
-    if (selectedModel === "jarvis-custom") {
-      setJarvisMemory(prev => [...prev, { q: msg, a: data.reply }]);
+    setJarvisMemory(prev => {
+  const updated = [...prev, { q: msg, a: data.reply }];
+  return updated.slice(-200);
+});
     }
 
     if (speakMode) {
