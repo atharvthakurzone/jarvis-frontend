@@ -51,15 +51,15 @@ const App = () => {
     const combinedQuery = `${memoryContext}\n${msg}`.trim();
 
     try {
-      const response = await fetch("https://jarvis-backend-rbev.onrender.com/api/jarvis", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: combinedQuery,
-          model: selectedModel === "jarvis-custom" ? "openai/gpt-3.5-turbo" : selectedModel
-        }),
-        signal: abortCtrl.signal
-      });
+      const response = await fetch("https://jarvis-backend-rbev.onrender.com/chat", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    prompt: combinedQuery // ⬅️ Backend expects this key, not 'query'
+  }),
+  signal: abortCtrl.signal
+});
+
 
       const data = await response.json();
       const replyMsg = {
