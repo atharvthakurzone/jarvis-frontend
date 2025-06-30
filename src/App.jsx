@@ -51,7 +51,7 @@ const App = () => {
       body: JSON.stringify({
         query: msg,
         model: selectedModel,
-        memoryContext // only used if "jarvis-custom"
+        memoryContext // sent even if not used by Mistral/Gemini
       }),
       signal: abortCtrl.signal
     });
@@ -65,11 +65,11 @@ const App = () => {
 
     setChatHistory(prev => [...prev, replyMsg]);
 
+    // Store every conversation into Jarvis memory
     setJarvisMemory(prev => {
-  const updated = [...prev, { q: msg, a: data.reply }];
-  return updated.slice(-200);
-});
-    }
+      const updated = [...prev, { q: msg, a: data.reply }];
+      return updated.slice(-200);
+    });
 
     if (speakMode) {
       const utterance = new SpeechSynthesisUtterance(data.reply);
