@@ -16,6 +16,7 @@ const App = () => {
   const [selectedModel, setSelectedModel] = useState(models[0].id);
   const [controller, setController] = useState(null);
   const [speakMode, setSpeakMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("jarvisMemory", JSON.stringify(jarvisMemory));
@@ -27,66 +28,93 @@ const App = () => {
   };
 
   const handleSubmit = async (msg = input) => {
-  if (!msg.trim()) return;
+    if (!msg.trim()) return;
 
-  const abortCtrl = new AbortController();
-  setController(abortCtrl);
+    const abortCtrl = new AbortController();
+    setController(abortCtrl);
+    setIsLoading(true);
 
-  const userMsg = {
-    role: "user",
-    content: msg,
-    model: getModelNameById(selectedModel)
-  };
-  setChatHistory(prev => [...prev, userMsg]);
-  setInput("");
-
-  const memoryContext = selectedModel === "jarvis-custom"
-    ? jarvisMemory.map(entry => `${entry.q}\n${entry.a}`).join('\n')
-    : "";
-
-  try {
-    const response = await fetch("https://jarvis-backend-rbev.onrender.com/api/jarvis", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: msg,
-        model: selectedModel,
-        memoryContext // sent even if not used by Mistral/Gemini
-      }),
-      signal: abortCtrl.signal
-    });
-
-    const data = await response.json();
-    const replyMsg = {
-      role: "assistant",
-      content: data.reply,
+    const userMsg = {
+      role: "user",
+      content: msg,
       model: getModelNameById(selectedModel)
     };
+    setChatHistory(prev => [...prev, userMsg]);
+    setInput("");
 
+    const memoryContext = selectedModel === "jarvis-custom"
+      ? jarvisMemory.map(entry => `${entry.q}\n${entry.a}`).join('\n')
+      : "";
+
+    let replyContent = "";
+    const replyMsg = {
+      role: "assistant",
+      content: "",
+      model: getModelNameById(selectedModel)
+    };
     setChatHistory(prev => [...prev, replyMsg]);
+    const replyIndex = chatHistory.length + 1;
 
-    // Store every conversation into Jarvis memory
-    setJarvisMemory(prev => {
-      const updated = [...prev, { q: msg, a: data.reply }];
-      return updated.slice(-200);
-    });
+    try {
+      const response = await fetch("https://jarvis-backend-rbev.onrender.com/api/jarvis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: msg,
+          model: selectedModel,
+          memoryContext
+        }),
+        signal: abortCtrl.signal
+      });
 
-    if (speakMode) {
-      const utterance = new SpeechSynthesisUtterance(data.reply);
-      speechSynthesis.speak(utterance);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        replyContent += chunk;
+
+        setChatHistory(prev => {
+          const updated = [...prev];
+          updated[replyIndex] = {
+            ...updated[replyIndex],
+            content: replyContent
+          };
+          return updated;
+        });
+      }
+
+      // Save to Jarvis memory
+      if (selectedModel === "jarvis-custom") {
+        setJarvisMemory(prev => {
+          const updated = [...prev, { q: msg, a: replyContent }];
+          return updated.slice(-200);
+        });
+      }
+
+      if (speakMode) {
+        const utterance = new SpeechSynthesisUtterance(replyContent);
+        speechSynthesis.speak(utterance);
+      }
+
+      setSpeakMode(false);
+      setIsLoading(false);
+
+    } catch (err) {
+      setIsLoading(false);
+      if (err.name !== 'AbortError') {
+        console.error("Error:", err);
+      }
     }
-
-    setSpeakMode(false);
-  } catch (err) {
-    if (err.name !== 'AbortError') {
-      console.error("Error:", err);
-    }
-  }
-};
+  };
 
   const handleStop = () => {
     if (controller) controller.abort();
     speechSynthesis.cancel();
+    setIsLoading(false);
   };
 
   const handleVoiceInput = () => {
@@ -111,7 +139,7 @@ const App = () => {
         <h2 className="text-xl font-bold mb-4 text-white">Chats</h2>
         {chatHistory.map((msg, idx) => (
           <div key={idx} className={`mb-2 ${msg.role === "user" ? "text-blue-400" : "text-green-400"}`}>
-            <strong>{msg.role === "user" ? "You" : msg.model}:</strong> {msg.content}
+            <strong>{msg.role === "user" ? "You" : msg.model}:</strong> {msg.content || (isLoading && idx === chatHistory.length - 1 ? "Typing..." : "")}
           </div>
         ))}
       </div>
@@ -151,6 +179,7 @@ const App = () => {
               <strong>{msg.role === "user" ? "You" : msg.model}:</strong> {msg.content}
             </div>
           ))}
+          {isLoading && <div className="text-gray-400 italic">Jarvis is thinking...</div>}
         </div>
       </div>
     </div>
