@@ -24,17 +24,30 @@ const App = () => {
     localStorage.setItem("jarvisMemory", JSON.stringify(jarvisMemory));
   }, [jarvisMemory]);
 
+  const getModelNameById = (id) => {
+    const model = models.find(m => m.id === id);
+    return model ? model.name : id;
+  };
+
   const handleSubmit = async (msg = input) => {
     if (!msg.trim()) return;
 
     const abortCtrl = new AbortController();
     setController(abortCtrl);
 
-    const userMsg = { role: "user", content: msg };
+    const userMsg = {
+      role: "user",
+      content: msg,
+      model: getModelNameById(selectedModel)
+    };
     setChatHistory(prev => [...prev, userMsg]);
     setInput("");
 
-    const memoryContext = jarvisMemory.map(entry => `${entry.q}\n${entry.a}`).join('\n');
+    // Memory for Jarvis only
+    const memoryContext = selectedModel === "jarvis-custom"
+      ? jarvisMemory.map(entry => `${entry.q}\n${entry.a}`).join('\n')
+      : "";
+
     const combinedQuery = `${memoryContext}\n${msg}`.trim();
 
     try {
@@ -49,9 +62,18 @@ const App = () => {
       });
 
       const data = await response.json();
-      const jarvisMsg = { role: "jarvis", content: data.reply };
-      setChatHistory(prev => [...prev, jarvisMsg]);
-      setJarvisMemory(prev => [...prev, { q: msg, a: data.reply }]);
+      const replyMsg = {
+        role: "assistant",
+        content: data.reply,
+        model: getModelNameById(selectedModel)
+      };
+
+      setChatHistory(prev => [...prev, replyMsg]);
+
+      // Only Jarvis stores memory
+      if (selectedModel === "jarvis-custom") {
+        setJarvisMemory(prev => [...prev, { q: msg, a: data.reply }]);
+      }
 
       if (speakMode) {
         const utterance = new SpeechSynthesisUtterance(data.reply);
@@ -60,9 +82,7 @@ const App = () => {
 
       setSpeakMode(false);
     } catch (err) {
-      if (err.name === 'AbortError') {
-        console.log("Fetch aborted");
-      } else {
+      if (err.name !== 'AbortError') {
         console.error("Error:", err);
       }
     }
@@ -87,10 +107,6 @@ const App = () => {
     recognition.onerror = (event) => {
       console.error("Speech recognition error:", event.error);
     };
-
-    recognition.onend = () => {
-      console.log("Voice input ended");
-    };
   };
 
   return (
@@ -99,7 +115,7 @@ const App = () => {
         <h2 className="text-xl font-bold mb-4 text-white">Chats</h2>
         {chatHistory.map((msg, idx) => (
           <div key={idx} className={`mb-2 ${msg.role === "user" ? "text-blue-400" : "text-green-400"}`}>
-            <strong>{msg.role === "user" ? "You" : "Jarvis"}:</strong> {msg.content}
+            <strong>{msg.role === "user" ? "You" : msg.model}:</strong> {msg.content}
           </div>
         ))}
       </div>
@@ -136,7 +152,7 @@ const App = () => {
         <div className="flex-1 p-4 overflow-y-auto">
           {chatHistory.map((msg, idx) => (
             <div key={idx} className={`mb-2 ${msg.role === "user" ? "text-blue-400" : "text-green-400"}`}>
-              <strong>{msg.role === "user" ? "You" : "Jarvis"}:</strong> {msg.content}
+              <strong>{msg.role === "user" ? "You" : msg.model}:</strong> {msg.content}
             </div>
           ))}
         </div>
