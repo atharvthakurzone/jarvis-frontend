@@ -2,11 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const models = [
   { id: "jarvis-custom", name: "Jarvis (Personal AI)" },
-  { id: "mistralai/mistral-7b-instruct", name: "Mistral 7B Instruct" },
-  { id: "huggingfaceh4/zephyr-7b-beta", name: "Zephyr 7B Beta" },
-  { id: "openai/gpt-3.5-turbo", name: "GPT-3.5 Turbo" },
-  { id: "meta-llama/llama-2-70b-chat", name: "LLaMA 2 70B Chat" },
-  { id: "google/gemma-7b-it", name: "Gemma 7B It" }
+  { id: "mistralai/mistral-7b-instruct", name: "Mistral 7B Instruct" }
 ];
 
 const App = () => {
