@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 
 const models = [
-  { id: "jarvis-custom", name: "Jarvis (Personal AI)" },
-  { id: "mistralai/mistral-7b-instruct", name: "Mistral 7B Instruct" }
+  { id: "jarvis-custom", name: "Custom Memory AI (Jarvis)" },
+  { id: "mistralai/mistral-7b-instruct", name: "Mistral 7B Instruct" },
+  { id: "google/gemini-2.5-pro", name: "Gemini 2.5 Pro" }
 ];
 
 const App = () => {
