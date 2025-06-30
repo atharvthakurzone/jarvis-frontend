@@ -27,65 +27,60 @@ const App = () => {
   };
 
   const handleSubmit = async (msg = input) => {
-    if (!msg.trim()) return;
+  if (!msg.trim()) return;
 
-    const abortCtrl = new AbortController();
-    setController(abortCtrl);
+  const abortCtrl = new AbortController();
+  setController(abortCtrl);
 
-    const userMsg = {
-      role: "user",
-      content: msg,
+  const userMsg = {
+    role: "user",
+    content: msg,
+    model: getModelNameById(selectedModel)
+  };
+  setChatHistory(prev => [...prev, userMsg]);
+  setInput("");
+
+  const memoryContext = selectedModel === "jarvis-custom"
+    ? jarvisMemory.map(entry => `${entry.q}\n${entry.a}`).join('\n')
+    : "";
+
+  try {
+    const response = await fetch("https://jarvis-backend-rbev.onrender.com/api/jarvis", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: msg,
+        model: selectedModel,
+        memoryContext // only used if "jarvis-custom"
+      }),
+      signal: abortCtrl.signal
+    });
+
+    const data = await response.json();
+    const replyMsg = {
+      role: "assistant",
+      content: data.reply,
       model: getModelNameById(selectedModel)
     };
-    setChatHistory(prev => [...prev, userMsg]);
-    setInput("");
 
-    // Memory for Jarvis only
-    const memoryContext = selectedModel === "jarvis-custom"
-      ? jarvisMemory.map(entry => `${entry.q}\n${entry.a}`).join('\n')
-      : "";
+    setChatHistory(prev => [...prev, replyMsg]);
 
-    const combinedQuery = `${memoryContext}\n${msg}`.trim();
-
-    try {
-      const response = await fetch("https://jarvis-backend-rbev.onrender.com/api/jarvis", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    query: combinedQuery,
-    model: selectedModel === "jarvis-custom" ? "openai/gpt-3.5-turbo" : selectedModel
-  }),
-  signal: abortCtrl.signal
-});
-
-
-
-      const data = await response.json();
-      const replyMsg = {
-        role: "assistant",
-        content: data.reply,
-        model: getModelNameById(selectedModel)
-      };
-
-      setChatHistory(prev => [...prev, replyMsg]);
-
-      // Only Jarvis stores memory
-      if (selectedModel === "jarvis-custom") {
-        setJarvisMemory(prev => [...prev, { q: msg, a: data.reply }]);
-      }
-
-      if (speakMode) {
-        const utterance = new SpeechSynthesisUtterance(data.reply);
-        speechSynthesis.speak(utterance);
-      }
-
-      setSpeakMode(false);
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error("Error:", err);
-      }
+    if (selectedModel === "jarvis-custom") {
+      setJarvisMemory(prev => [...prev, { q: msg, a: data.reply }]);
     }
-  };
+
+    if (speakMode) {
+      const utterance = new SpeechSynthesisUtterance(data.reply);
+      speechSynthesis.speak(utterance);
+    }
+
+    setSpeakMode(false);
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      console.error("Error:", err);
+    }
+  }
+};
 
   const handleStop = () => {
     if (controller) controller.abort();
