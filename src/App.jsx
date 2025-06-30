@@ -139,14 +139,29 @@ const App = () => {
 
   return (
     <div className="flex h-screen">
-      <div className="w-64 bg-gray-800 p-4 overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4 text-white">Chats</h2>
-        {chatHistory.map((msg, idx) => (
-          <div key={idx} className={`mb-2 ${msg.role === "user" ? "text-blue-400" : "text-green-400"}`}>
-            <strong>{msg.role === "user" ? "You" : msg.model}:</strong> {msg.content || (isLoading && idx === chatHistory.length - 1 ? "Typing..." : "")}
-          </div>
-        ))}
-      </div>
+      <div className="w-64 bg-gray-800 p-4 flex flex-col">
+  <h2 className="text-2xl font-extrabold text-white mb-4 text-center">Jarvis</h2>
+
+  <button
+    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mb-4"
+    onClick={() => setChatHistory([])}
+  >
+    + New Chat
+  </button>
+
+  <div className="flex-1 overflow-y-auto space-y-2">
+    {chatHistory.map((msg, idx) => (
+      msg.role === "user" && (
+        <div
+          key={idx}
+          className="bg-gray-700 text-white p-2 rounded cursor-pointer hover:bg-gray-600"
+        >
+          Chat {idx + 1}
+        </div>
+      )
+    ))}
+  </div>
+</div>
 
       <div className="flex-1 flex flex-col">
         {/* Chat Area */}
